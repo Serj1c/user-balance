@@ -21,6 +21,7 @@ func (r *Repo) Deposit(userID, amount int) error {
 
 // Withdraw takes money out of user's balance
 func (r *Repo) Withdraw(userID, amount int) error {
+	/* Check that amount is less than or equal to a balance */
 	return nil
 }
 

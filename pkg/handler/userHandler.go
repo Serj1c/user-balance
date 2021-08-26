@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -45,15 +44,46 @@ func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
-	fmt.Println(userID, amount)
+	err = uh.r.Deposit(userID, amount)
+	if err != nil {
+		/* .... */
+	}
 }
 
 // Withdraw handles requests for withdrawl of money out of user's balance
 func (uh *UserHandler) Withdraw(rw http.ResponseWriter, r *http.Request) {
-
+	queryParams := r.URL.Query()
+	userID, err := strconv.Atoi(queryParams["user"][0])
+	if err != nil {
+		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
+	}
+	amount, err := strconv.Atoi(queryParams["amout"][0])
+	if err != nil {
+		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
+	}
+	err = uh.r.Withdraw(userID, amount)
+	if err != nil {
+		/* ... */
+	}
 }
 
 // Transfer handles requests for transfering money from one user's balance to the other
 func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
-
+	queryParams := r.URL.Query()
+	fromUserID, err := strconv.Atoi(queryParams["from_user"][0])
+	if err != nil {
+		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
+	}
+	toUserID, err := strconv.Atoi(queryParams["to_user"][0])
+	if err != nil {
+		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
+	}
+	amount, err := strconv.Atoi(queryParams["amout"][0])
+	if err != nil {
+		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
+	}
+	err = uh.r.Transfer(fromUserID, toUserID, amount)
+	if err != nil {
+		/* ... */
+	}
 }
