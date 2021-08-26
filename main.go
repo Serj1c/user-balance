@@ -19,7 +19,7 @@ import (
 
 func main() {
 
-	config, err := util.LoadConfig("../")
+	config, err := util.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Error while reading config file: ", err)
 	}

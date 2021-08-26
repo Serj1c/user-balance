@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:13.1-alpine
+    environment: 
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=spartak1
+      - POSTGRES_DB=balance
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    volumes: 
+      - .database/postgres/data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+    ports:
+      - "4000:4000"
+    depends_on: 
+      - db
+    networks:
+      - backend
+    volumes:
+      - .:/go/src/api
+    environment:
+      - ENV=${ENV}
+      - DB_SOURCE=postgresql://root:spartak1@db:5432/balance?sslmode=disable
+    restart: always
+
+networks:
+  backend:
+
