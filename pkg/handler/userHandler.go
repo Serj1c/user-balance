@@ -21,69 +21,80 @@ func NewUserHandler(r *users.Repo) *UserHandler {
 // GetBalance handles requests for user's balance
 func (uh *UserHandler) GetBalance(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	userID, err := strconv.Atoi(queryParams["user"][0])
-	if err != nil {
-		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
+	userID := queryParams["user"][0]
+	balance, err := uh.r.Balance(userID)
+	if err == users.ErrNoUser {
+		http.Error(rw, "User ID does not exist", http.StatusBadRequest)
+	} else {
+		response, err := json.Marshal(balance)
+		if err != nil {
+			http.Error(rw, "Cannot marshal response", http.StatusInternalServerError)
+		}
+		rw.Write(response)
 	}
-	balance := uh.r.Balance(userID)
-	response, err := json.Marshal(balance)
-	if err != nil {
-		http.Error(rw, "Cannot marshal response", http.StatusInternalServerError)
-	}
-	rw.Write(response)
 }
 
 // Deposit handles requests for depositing money on user's balance
 func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	userID, err := strconv.Atoi(queryParams["user"][0])
-	if err != nil {
-		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
-	}
+	userID := queryParams["user"][0]
 	amount, err := strconv.Atoi(queryParams["amount"][0])
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
-	err = uh.r.Deposit(userID, amount)
-	if err != nil {
-		/* .... */
+	if amount > 0 {
+		err = uh.r.Deposit(userID, amount)
+		switch err {
+		case nil:
+		case users.ErrDBQuery:
+			http.Error(rw, "Server fault", http.StatusInternalServerError)
+		}
+	} else {
+		http.Error(rw, "Deposit of only positive sums is allowed", http.StatusBadRequest)
 	}
 }
 
 // Withdraw handles requests for withdrawl of money out of user's balance
 func (uh *UserHandler) Withdraw(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	userID, err := strconv.Atoi(queryParams["user"][0])
-	if err != nil {
-		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
-	}
-	amount, err := strconv.Atoi(queryParams["amout"][0])
+	userID := queryParams["user"][0]
+	amount, err := (strconv.Atoi(queryParams["amount"][0]))
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
-	err = uh.r.Withdraw(userID, amount)
-	if err != nil {
-		/* ... */
+	if amount > 0 {
+		err = uh.r.Withdraw(userID, amount)
+		if err == users.ErrNoUser {
+			http.Error(rw, "User does not exist", http.StatusBadRequest)
+		} else if err == users.ErrNotEnoughMoney {
+			http.Error(rw, "User does not have enough money", http.StatusBadRequest)
+		}
+	} else {
+		http.Error(rw, "Withdrawal of only positive sums is allowed", http.StatusBadRequest)
 	}
 }
 
 // Transfer handles requests for transfering money from one user's balance to the other
 func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	fromUserID, err := strconv.Atoi(queryParams["from_user"][0])
-	if err != nil {
-		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
-	}
-	toUserID, err := strconv.Atoi(queryParams["to_user"][0])
-	if err != nil {
-		http.Error(rw, "Cannot parse user ID", http.StatusBadRequest)
-	}
-	amount, err := strconv.Atoi(queryParams["amout"][0])
+	fromUserID := queryParams["from_user"][0]
+	toUserID := queryParams["to_user"][0]
+	amount, err := strconv.Atoi(queryParams["amount"][0])
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
-	err = uh.r.Transfer(fromUserID, toUserID, amount)
-	if err != nil {
-		/* ... */
+	if amount > 0 {
+		err = uh.r.Transfer(fromUserID, toUserID, amount)
+		switch err {
+		case nil:
+		case users.ErrNotEnoughMoney:
+			http.Error(rw, "User does not have enough money", http.StatusBadRequest)
+		case users.ErrNoUser:
+			http.Error(rw, "One or both users do not exist", http.StatusBadRequest)
+		case users.ErrDBQuery:
+			http.Error(rw, "Internal error", http.StatusInternalServerError)
+		}
+	} else {
+		http.Error(rw, "Transfer of only positive sums is allowed", http.StatusBadRequest)
 	}
 }

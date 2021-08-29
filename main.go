@@ -30,10 +30,10 @@ func main() {
 	}
 	defer db.Close()
 
-	/* err = db.Ping()
+	err = db.Ping()
 	if err != nil {
 		log.Fatalf("Cannot connect to db, err: %v\n", err)
-	} */
+	}
 
 	ur := users.NewRepo(db)
 
