@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -26,6 +28,10 @@ func (uh *UserHandler) GetBalance(rw http.ResponseWriter, r *http.Request) {
 	if err == users.ErrNoUser {
 		http.Error(rw, "User ID does not exist", http.StatusBadRequest)
 	} else {
+		if _, ok := queryParams["currency"]; ok {
+			currency := queryParams["currency"][0]
+			balance = balance * excangeRateAPIcall(currency)
+		}
 		response, err := json.Marshal(balance)
 		if err != nil {
 			http.Error(rw, "Cannot marshal response", http.StatusInternalServerError)
@@ -97,4 +103,22 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(rw, "Transfer of only positive sums is allowed", http.StatusBadRequest)
 	}
+}
+
+func excangeRateAPIcall(currency string) float64 {
+	resp, err := http.Get("http://api.exchangeratesapi.io/v1/2021-08-29?access_key=36d585d941651b79dd7d412d57dc66ff&base=EUR&symbols=RUB," + currency)
+	if err != nil {
+		return -1
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal([]byte(data), &result)
+	rates := result["rates"].(map[string]interface{})
+	curString := fmt.Sprint(rates[currency])
+	rubString := fmt.Sprint(rates["RUB"])
+	cur, _ := strconv.ParseFloat(curString, 64)
+	rub, _ := strconv.ParseFloat(rubString, 64)
+	excangeRate := cur / rub
+	return excangeRate
 }

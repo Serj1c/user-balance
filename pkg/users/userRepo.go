@@ -117,11 +117,12 @@ func (r *Repo) Transfer(fromUserID, toUserID string, amount int) error {
 }
 
 // Balance returns user's balance
-func (r *Repo) Balance(userID string) (int, error) {
+func (r *Repo) Balance(userID string) (float64, error) {
 	user := &User{}
 	err := r.db.QueryRow("SELECT balance FROM users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
 		return -1, ErrNoUser
 	}
-	return user.Balance, nil
+	balanceFloat := float64(user.Balance)
+	return balanceFloat, nil
 }
