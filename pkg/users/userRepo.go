@@ -27,7 +27,7 @@ var (
 )
 
 // Deposit adds money to a user's balance
-func (r *Repo) Deposit(userID string, amount int) error {
+func (r *Repo) Deposit(userID string, amount float64) error {
 	user := &User{}
 	err := r.db.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
@@ -54,7 +54,7 @@ func (r *Repo) Deposit(userID string, amount int) error {
 }
 
 // Withdraw takes money out of user's balance
-func (r *Repo) Withdraw(userID string, amount int) error {
+func (r *Repo) Withdraw(userID string, amount float64) error {
 	user := &User{}
 	err := r.db.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
@@ -76,7 +76,7 @@ func (r *Repo) Withdraw(userID string, amount int) error {
 }
 
 // Transfer transfers money from one user's balance to the other
-func (r *Repo) Transfer(fromUserID, toUserID string, amount int) error {
+func (r *Repo) Transfer(fromUserID, toUserID string, amount float64) error {
 	fromUser := &User{}
 	toUser := &User{}
 	tx, err := r.db.Begin()
@@ -123,6 +123,5 @@ func (r *Repo) Balance(userID string) (float64, error) {
 	if err == sql.ErrNoRows {
 		return -1, ErrNoUser
 	}
-	balanceFloat := float64(user.Balance)
-	return balanceFloat, nil
+	return user.Balance, nil
 }

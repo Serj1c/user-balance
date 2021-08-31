@@ -44,7 +44,7 @@ func (uh *UserHandler) GetBalance(rw http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	userID := queryParams["user"][0]
-	amount, err := strconv.Atoi(queryParams["amount"][0])
+	amount, err := strconv.ParseFloat(queryParams["amount"][0], 64)
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
@@ -64,7 +64,7 @@ func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) Withdraw(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	userID := queryParams["user"][0]
-	amount, err := (strconv.Atoi(queryParams["amount"][0]))
+	amount, err := strconv.ParseFloat(queryParams["amount"][0], 64)
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
@@ -85,7 +85,7 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	fromUserID := queryParams["from_user"][0]
 	toUserID := queryParams["to_user"][0]
-	amount, err := strconv.Atoi(queryParams["amount"][0])
+	amount, err := strconv.ParseFloat(queryParams["amount"][0], 64)
 	if err != nil {
 		http.Error(rw, "Cannot parse amount of money", http.StatusBadRequest)
 	}
@@ -103,6 +103,10 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(rw, "Transfer of only positive sums is allowed", http.StatusBadRequest)
 	}
+}
+
+func dateTransformer(date string) string {
+	return ""
 }
 
 func excangeRateAPIcall(currency string) float64 {
