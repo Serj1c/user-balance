@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Serj1c/user-balance/pkg/users"
 )
@@ -105,12 +106,15 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func dateTransformer(date string) string {
-	return ""
+func dateTransformer() string {
+	t := time.Now().Local().AddDate(0, 0, -1)
+	s := t.Format("2020-12-01")
+	return s
 }
 
 func excangeRateAPIcall(currency string) float64 {
-	resp, err := http.Get("http://api.exchangeratesapi.io/v1/2021-08-29?access_key=36d585d941651b79dd7d412d57dc66ff&base=EUR&symbols=RUB," + currency)
+	date := dateTransformer()
+	resp, err := http.Get("http://api.exchangeratesapi.io/v1/" + date + "?access_key=36d585d941651b79dd7d412d57dc66ff&base=EUR&symbols=RUB," + currency)
 	if err != nil {
 		return -1
 	}
