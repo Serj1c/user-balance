@@ -31,10 +31,8 @@ API endpoints:
 curl http://localhost:4000/operations?user=userID
 
 General assumptions:
-Since excangerateapi for free-tier accounts:
+1. Since excangerateapi for free-tier accounts:
 - provides only historic data -> we are making the calls using the "yesterday" date
 - allows to use only EUR as a base currency -> calls are made for EUR to RUB and EUR to "requested currency", after that excange rate between RUB and "currency" are calculated
-- 
-
-<!-- TODO assumptions regarding floats with points -->
+2. First deposit of money on a balance creates a user. To receive money through a transaction a user must already be created  
 
