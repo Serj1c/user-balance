@@ -45,6 +45,7 @@ func main() {
 	sm.HandleFunc("/withdraw", uh.Withdraw).Methods("POST")
 	sm.HandleFunc("/transfer", uh.Transfer).Methods("POST")
 	sm.HandleFunc("/balance", uh.GetBalance).Methods("GET")
+	sm.HandleFunc("/operations", uh.ListAllOperations).Methods("GET")
 
 	server := &http.Server{
 		Addr:         config.ServerPort,

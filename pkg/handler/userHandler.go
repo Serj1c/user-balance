@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Serj1c/user-balance/pkg/users"
+	"github.com/Serj1c/user-balance/pkg/util"
 )
 
 // UserHandler is a handler to work with all things user
@@ -106,9 +107,23 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListAllOperations lists all operations performed on user's balance
+func (uh *UserHandler) ListAllOperations(rw http.ResponseWriter, r *http.Request) {
+	querParams := r.URL.Query()
+	userID := querParams["user"][0]
+	operations, err := uh.r.ListAll(userID)
+	if err != nil {
+		http.Error(rw, "Internal error", http.StatusInternalServerError)
+	}
+	err = util.ToJSON(operations, rw)
+	if err != nil {
+		http.Error(rw, "Internal error", http.StatusInternalServerError)
+	}
+}
+
 func dateTransformer() string {
 	t := time.Now().Local().AddDate(0, 0, -1)
-	s := t.Format("2020-12-01")
+	s := t.Format("2006-01-02")
 	return s
 }
 

@@ -35,7 +35,7 @@ func (r *Repo) Deposit(userID string, amount float64) error {
 		if err != nil {
 			return ErrDBQuery
 		}
-		_, err = r.db.Exec("INSERT into deposits(user_id, amount) VALUES($1, $2)", userID, amount)
+		_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
 		if err != nil {
 			return ErrDBQuery
 		}
@@ -46,7 +46,7 @@ func (r *Repo) Deposit(userID string, amount float64) error {
 	if err != nil {
 		return ErrDBQuery
 	}
-	_, err = r.db.Exec("INSERT into deposits(user_id, amount) VALUES($1, $2)", userID, amount)
+	_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
 	if err != nil {
 		return ErrDBQuery
 	}
@@ -66,7 +66,7 @@ func (r *Repo) Withdraw(userID string, amount float64) error {
 		if err != nil {
 			return fmt.Errorf("Money withdrawal has failed")
 		}
-		_, err = r.db.Exec("INSERT into withdrawls(user_id, amount) VALUES($1, $2)", userID, amount)
+		_, err = r.db.Exec("INSERT into withdrawals(from_user_id, amount) VALUES($1, $2)", userID, amount)
 		if err != nil {
 			return fmt.Errorf("Money withdrawal has failed")
 		}
@@ -124,4 +124,35 @@ func (r *Repo) Balance(userID string) (float64, error) {
 		return -1, ErrNoUser
 	}
 	return user.Balance, nil
+}
+
+// UserBalanceOperation represents an operation with an ATM machine such as deposit of money or their withdrawal
+type UserBalanceOperation struct {
+	ID         int     `json:"id"`
+	FromUserID string  `json:"from_user_id"`
+	ToUserID   string  `json:"to_user_id"`
+	Amount     float64 `json:"amount"`
+	CreatedAt  string  `json:"created_at"`
+	Comment    string  `json:"comment"`
+}
+
+// ListAll returns all user's operations with the balance
+func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
+	operations := make([]*UserBalanceOperation, 0, 10)
+	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE from_user_id = $1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		item := &UserBalanceOperation{}
+		err := rows.Scan(&item.ID, &item.FromUserID, &item.ToUserID, &item.Amount, &item.CreatedAt, &item.Comment)
+		if err != nil {
+			return nil, err
+		}
+		operations = append(operations, item)
+	}
+	return operations, nil
 }

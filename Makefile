@@ -1,4 +1,4 @@
-dev:
+docker:
 	ENV=development docker-compose -f docker-compose.yml up -d
 
 postgres:
@@ -10,4 +10,4 @@ migrateup:
 migratedown:
 	migrate -path migrations -database "postgresql://root:spartak1@localhost:5432/balance?sslmode=disable" down
 
-.PHONY: dev postgres migrateup migratedown
+.PHONY: docker postgres migrateup migratedown
