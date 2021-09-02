@@ -141,7 +141,8 @@ func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
 	operations := make([]*UserBalanceOperation, 0, 10)
 	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
 	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE from_user_id = $1`, userID)
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE to_user_id = $1`, userID)
 	if err != nil {
 		return nil, err
 	}
