@@ -16,7 +16,8 @@ services:
 
   api:
     build:
-      context: .
+      context: ../.
+      dockerfile: build/Dockerfile
     ports:
       - "4000:4000"
     depends_on: 
@@ -24,10 +25,7 @@ services:
     networks:
       - backend
     volumes:
-      - .:/go/src/api
-    environment:
-      - ENV=${ENV}
-      - DB_SOURCE=postgresql://root:spartak1@db:5432/balance?sslmode=disable
+      - ../.:/go/src/api
     restart: always
 
 networks:

@@ -10,21 +10,20 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/Serj1c/user-balance/pkg/config"
 	"github.com/Serj1c/user-balance/pkg/handler"
 	"github.com/Serj1c/user-balance/pkg/users"
-	"github.com/Serj1c/user-balance/pkg/util"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-
-	config, err := util.LoadConfig(".")
+	cfg, err := config.Load("../../configs")
 	if err != nil {
 		log.Fatal("Error while reading config file: ", err)
 	}
 
-	db, err := sql.Open(config.DBDriver, config.DBSource)
+	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
 	if err != nil {
 		log.Fatal("Error while sql.Open: ", err)
 	}
@@ -48,7 +47,7 @@ func main() {
 	sm.HandleFunc("/operations", uh.ListAllOperations).Methods("GET")
 
 	server := &http.Server{
-		Addr:         config.ServerPort,
+		Addr:         cfg.ServerPort,
 		Handler:      sm,
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  1 * time.Second,
