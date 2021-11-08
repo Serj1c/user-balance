@@ -31,22 +31,40 @@ func (r *Repo) Deposit(userID string, amount float64) error {
 	user := &User{}
 	err := r.db.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
-		_, err := r.db.Exec("INSERT into users(id, balance) VALUES($1, $2)", userID, amount)
+		tx, err := r.db.Begin()
 		if err != nil {
 			return ErrDBQuery
 		}
-		_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+		defer tx.Rollback()
+		_, err = tx.Exec("INSERT into users(id, balance) VALUES($1, $2)", userID, amount)
+		if err != nil {
+			return ErrDBQuery
+		}
+		_, err = tx.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+		if err != nil {
+			return ErrDBQuery
+		}
+		err = tx.Commit()
 		if err != nil {
 			return ErrDBQuery
 		}
 		return nil
 	}
-	newBalance := user.Balance + amount
-	_, err = r.db.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
+	tx, err := r.db.Begin()
 	if err != nil {
 		return ErrDBQuery
 	}
-	_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+	defer tx.Rollback()
+	newBalance := user.Balance + amount
+	_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
+	if err != nil {
+		return ErrDBQuery
+	}
+	_, err = tx.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+	if err != nil {
+		return ErrDBQuery
+	}
+	err = tx.Commit()
 	if err != nil {
 		return ErrDBQuery
 	}

@@ -55,7 +55,7 @@ func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 		switch err {
 		case nil:
 		case users.ErrDBQuery:
-			http.Error(rw, "Server fault", http.StatusInternalServerError)
+			http.Error(rw, "Internal error", http.StatusInternalServerError)
 		}
 	} else {
 		http.Error(rw, "Deposit of only positive sums is allowed", http.StatusBadRequest)
