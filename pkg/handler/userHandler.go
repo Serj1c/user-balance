@@ -111,8 +111,8 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ListAllOperations lists all operations performed on user's balance
-func (uh *UserHandler) ListAllOperations(rw http.ResponseWriter, r *http.Request) {
+// ListOperations lists all operations performed on user's balance
+func (uh *UserHandler) ListOperations(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	userID := queryParams["user"][0]
 	operations, err := uh.r.List(userID)

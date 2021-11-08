@@ -108,7 +108,7 @@ func (r *Repo) Transfer(fromUserID, toUserID string, amount float64) error {
 	toUser := &User{}
 	tx, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("Money transfer has failed at the very beginning")
+		return ErrDBQuery
 	}
 	defer tx.Rollback()
 	err = tx.QueryRow("SELECT balance from users WHERE id = $1", fromUserID).Scan(&fromUser.Balance)
