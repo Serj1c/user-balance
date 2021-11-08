@@ -137,7 +137,7 @@ type UserBalanceOperation struct {
 }
 
 // ListAll returns all user's operations with the balance
-func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
+func (r *Repo) List(userID string) ([]*UserBalanceOperation, error) {
 	operations := make([]*UserBalanceOperation, 0, 10)
 	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
 	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
@@ -157,3 +157,28 @@ func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
 	}
 	return operations, nil
 }
+
+/*
+sorting:
+
+// query param &sort=ASC or &sort=DESC
+if sort := r.Query("sort"); sort != "" {
+	sql = fmt.Sprintf("%s ORDER BY xxx %s", sql, sort)
+}
+
+pagination:
+// query params &page=X
+page, _ := strconv.Atoi(r.Query("page", "1"))
+perPage := 10
+var total int64
+db.Raw(sql).Count(&total)
+offset := (page-1)*perPage
+sql = fmt.Sprintf("%s LIMIT %d OFFSET %d", sql, perPage, offset)
+db.Raw(sql).Scan(&products)
+return JSON({
+	"data": products,
+	"total": total,
+	"page": page,
+	"lastPage": math.Ceil(float64(total / int64(perPage))),
+})
+*/

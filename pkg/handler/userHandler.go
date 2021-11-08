@@ -28,7 +28,7 @@ func (uh *UserHandler) GetBalance(rw http.ResponseWriter, r *http.Request) {
 	userID := queryParams["user"][0]
 	balance, err := uh.r.Balance(userID)
 	if err == users.ErrNoUser {
-		http.Error(rw, "User ID does not exist", http.StatusBadRequest)
+		http.Error(rw, "User does not exist", http.StatusBadRequest)
 	} else {
 		if _, ok := queryParams["currency"]; ok {
 			currency := queryParams["currency"][0]
@@ -109,9 +109,9 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 
 // ListAllOperations lists all operations performed on user's balance
 func (uh *UserHandler) ListAllOperations(rw http.ResponseWriter, r *http.Request) {
-	querParams := r.URL.Query()
-	userID := querParams["user"][0]
-	operations, err := uh.r.ListAll(userID)
+	queryParams := r.URL.Query()
+	userID := queryParams["user"][0]
+	operations, err := uh.r.List(userID)
 	if err != nil {
 		http.Error(rw, "Internal error", http.StatusInternalServerError)
 	}
@@ -135,7 +135,7 @@ func excangeRateAPIcall(currency string) float64 {
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
-	var result map[string]interface{}
+	result := make(map[string]interface{})
 	json.Unmarshal([]byte(data), &result)
 	rates := result["rates"].(map[string]interface{})
 	curString := fmt.Sprint(rates[currency])

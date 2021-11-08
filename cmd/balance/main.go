@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("../../configs")
+	cfg, err := config.Load("configs")
 	if err != nil {
 		log.Fatal("Error while reading config file: ", err)
 	}
