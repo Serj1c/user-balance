@@ -31,22 +31,40 @@ func (r *Repo) Deposit(userID string, amount float64) error {
 	user := &User{}
 	err := r.db.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
-		_, err := r.db.Exec("INSERT into users(id, balance) VALUES($1, $2)", userID, amount)
+		tx, err := r.db.Begin()
 		if err != nil {
 			return ErrDBQuery
 		}
-		_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+		defer tx.Rollback()
+		_, err = tx.Exec("INSERT into users(id, balance) VALUES($1, $2)", userID, amount)
+		if err != nil {
+			return ErrDBQuery
+		}
+		_, err = tx.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+		if err != nil {
+			return ErrDBQuery
+		}
+		err = tx.Commit()
 		if err != nil {
 			return ErrDBQuery
 		}
 		return nil
 	}
-	newBalance := user.Balance + amount
-	_, err = r.db.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
+	tx, err := r.db.Begin()
 	if err != nil {
 		return ErrDBQuery
 	}
-	_, err = r.db.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+	defer tx.Rollback()
+	newBalance := user.Balance + amount
+	_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
+	if err != nil {
+		return ErrDBQuery
+	}
+	_, err = tx.Exec("INSERT into deposits(to_user_id, amount) VALUES($1, $2)", userID, amount)
+	if err != nil {
+		return ErrDBQuery
+	}
+	err = tx.Commit()
 	if err != nil {
 		return ErrDBQuery
 	}
@@ -56,19 +74,28 @@ func (r *Repo) Deposit(userID string, amount float64) error {
 // Withdraw takes money out of user's balance
 func (r *Repo) Withdraw(userID string, amount float64) error {
 	user := &User{}
-	err := r.db.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
+	tx, err := r.db.Begin()
+	if err != nil {
+		return ErrDBQuery
+	}
+	defer tx.Rollback()
+	err = tx.QueryRow("SELECT balance from users WHERE id = $1", userID).Scan(&user.Balance)
 	if err == sql.ErrNoRows {
 		return ErrNoUser
 	}
 	if user.Balance >= amount {
 		newBalance := user.Balance - amount
-		_, err = r.db.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
+		_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalance, userID)
 		if err != nil {
-			return fmt.Errorf("Money withdrawal has failed")
+			return ErrDBQuery
 		}
-		_, err = r.db.Exec("INSERT into withdrawals(from_user_id, amount) VALUES($1, $2)", userID, amount)
+		_, err = tx.Exec("INSERT into withdrawals(from_user_id, amount) VALUES($1, $2)", userID, amount)
 		if err != nil {
-			return fmt.Errorf("Money withdrawal has failed")
+			return ErrDBQuery
+		}
+		err = tx.Commit()
+		if err != nil {
+			return ErrDBQuery
 		}
 		return nil
 	}
@@ -81,7 +108,7 @@ func (r *Repo) Transfer(fromUserID, toUserID string, amount float64) error {
 	toUser := &User{}
 	tx, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("Money transfer has failed at the very beginning")
+		return ErrDBQuery
 	}
 	defer tx.Rollback()
 	err = tx.QueryRow("SELECT balance from users WHERE id = $1", fromUserID).Scan(&fromUser.Balance)
@@ -95,15 +122,15 @@ func (r *Repo) Transfer(fromUserID, toUserID string, amount float64) error {
 	if fromUser.Balance >= amount {
 		newBalanceFrom := fromUser.Balance - amount
 		newBalanceTo := toUser.Balance + amount
-		_, err = r.db.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalanceFrom, fromUserID)
+		_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalanceFrom, fromUserID)
 		if err != nil {
 			return ErrDBQuery
 		}
-		_, err = r.db.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalanceTo, toUserID)
+		_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", newBalanceTo, toUserID)
 		if err != nil {
 			return ErrDBQuery
 		}
-		_, err = r.db.Exec("INSERT into transactions(from_user_id, to_user_id, amount) VALUES($1, $2, $3)", fromUserID, toUserID, amount)
+		_, err = tx.Exec("INSERT into transactions(from_user_id, to_user_id, amount) VALUES($1, $2, $3)", fromUserID, toUserID, amount)
 		if err != nil {
 			return ErrDBQuery
 		}
@@ -136,8 +163,8 @@ type UserBalanceOperation struct {
 	Comment    string  `json:"comment"`
 }
 
-// ListAll returns all user's operations with the balance
-func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
+// List returns all user's operations with the balance
+func (r *Repo) List(userID string) ([]*UserBalanceOperation, error) {
 	operations := make([]*UserBalanceOperation, 0, 10)
 	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
 	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
@@ -157,3 +184,28 @@ func (r *Repo) ListAll(userID string) ([]*UserBalanceOperation, error) {
 	}
 	return operations, nil
 }
+
+/*
+sorting:
+
+// query param &sort=ASC or &sort=DESC
+if sort := r.Query("sort"); sort != "" {
+	sql = fmt.Sprintf("%s ORDER BY xxx %s", sql, sort)
+}
+
+pagination:
+// query params &page=X
+page, _ := strconv.Atoi(r.Query("page", "1"))
+perPage := 10
+var total int64
+db.Raw(sql).Count(&total)
+offset := (page-1)*perPage
+sql = fmt.Sprintf("%s LIMIT %d OFFSET %d", sql, perPage, offset)
+db.Raw(sql).Scan(&products)
+return JSON({
+	"data": products,
+	"total": total,
+	"page": page,
+	"lastPage": math.Ceil(float64(total / int64(perPage))),
+})
+*/

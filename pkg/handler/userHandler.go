@@ -28,7 +28,7 @@ func (uh *UserHandler) GetBalance(rw http.ResponseWriter, r *http.Request) {
 	userID := queryParams["user"][0]
 	balance, err := uh.r.Balance(userID)
 	if err == users.ErrNoUser {
-		http.Error(rw, "User ID does not exist", http.StatusBadRequest)
+		http.Error(rw, "User does not exist", http.StatusBadRequest)
 	} else {
 		if _, ok := queryParams["currency"]; ok {
 			currency := queryParams["currency"][0]
@@ -55,7 +55,7 @@ func (uh *UserHandler) Deposit(rw http.ResponseWriter, r *http.Request) {
 		switch err {
 		case nil:
 		case users.ErrDBQuery:
-			http.Error(rw, "Server fault", http.StatusInternalServerError)
+			http.Error(rw, "Internal error", http.StatusInternalServerError)
 		}
 	} else {
 		http.Error(rw, "Deposit of only positive sums is allowed", http.StatusBadRequest)
@@ -72,10 +72,14 @@ func (uh *UserHandler) Withdraw(rw http.ResponseWriter, r *http.Request) {
 	}
 	if amount > 0 {
 		err = uh.r.Withdraw(userID, amount)
-		if err == users.ErrNoUser {
+		switch err {
+		case nil:
+		case users.ErrNoUser:
 			http.Error(rw, "User does not exist", http.StatusBadRequest)
-		} else if err == users.ErrNotEnoughMoney {
+		case users.ErrNotEnoughMoney:
 			http.Error(rw, "User does not have enough money", http.StatusBadRequest)
+		case users.ErrDBQuery:
+			http.Error(rw, "Internal error", http.StatusInternalServerError)
 		}
 	} else {
 		http.Error(rw, "Withdrawal of only positive sums is allowed", http.StatusBadRequest)
@@ -107,11 +111,11 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ListAllOperations lists all operations performed on user's balance
-func (uh *UserHandler) ListAllOperations(rw http.ResponseWriter, r *http.Request) {
-	querParams := r.URL.Query()
-	userID := querParams["user"][0]
-	operations, err := uh.r.ListAll(userID)
+// ListOperations lists all operations performed on user's balance
+func (uh *UserHandler) ListOperations(rw http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	userID := queryParams["user"][0]
+	operations, err := uh.r.List(userID)
 	if err != nil {
 		http.Error(rw, "Internal error", http.StatusInternalServerError)
 	}
@@ -135,7 +139,7 @@ func excangeRateAPIcall(currency string) float64 {
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
-	var result map[string]interface{}
+	result := make(map[string]interface{})
 	json.Unmarshal([]byte(data), &result)
 	rates := result["rates"].(map[string]interface{})
 	curString := fmt.Sprint(rates[currency])
