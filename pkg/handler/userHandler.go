@@ -72,10 +72,14 @@ func (uh *UserHandler) Withdraw(rw http.ResponseWriter, r *http.Request) {
 	}
 	if amount > 0 {
 		err = uh.r.Withdraw(userID, amount)
-		if err == users.ErrNoUser {
+		switch err {
+		case nil:
+		case users.ErrNoUser:
 			http.Error(rw, "User does not exist", http.StatusBadRequest)
-		} else if err == users.ErrNotEnoughMoney {
+		case users.ErrNotEnoughMoney:
 			http.Error(rw, "User does not have enough money", http.StatusBadRequest)
+		case users.ErrDBQuery:
+			http.Error(rw, "Internal error", http.StatusInternalServerError)
 		}
 	} else {
 		http.Error(rw, "Withdrawal of only positive sums is allowed", http.StatusBadRequest)
