@@ -111,13 +111,19 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ListOperations lists all operations performed on user's balance
+// ListOperations lists all operations performed by user with its balance
 func (uh *UserHandler) ListOperations(rw http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	userID := queryParams["user"][0]
-	operations, err := uh.r.List(userID)
+	sortBy := "created_at"
+	sortOrder := "ASC"
+	if _, ok := queryParams["sort"]; ok {
+		sortBy = queryParams["sort"][0]
+		sortOrder = queryParams["sort"][1]
+	}
+	operations, err := uh.r.List(userID, sortBy, sortOrder)
 	if err != nil {
-		http.Error(rw, "Internal error", http.StatusInternalServerError)
+		http.Error(rw, "DB error", http.StatusInternalServerError)
 	}
 	err = util.ToJSON(operations, rw)
 	if err != nil {

@@ -153,7 +153,7 @@ func (r *Repo) Balance(userID string) (float64, error) {
 	return user.Balance, nil
 }
 
-// UserBalanceOperation represents an operation with an ATM machine such as deposit of money or their withdrawal
+// UserBalanceOperation represents an operation with user's balance such as deposit of money or their withdrawal
 type UserBalanceOperation struct {
 	ID         int     `json:"id"`
 	FromUserID string  `json:"from_user_id"`
@@ -164,48 +164,25 @@ type UserBalanceOperation struct {
 }
 
 // List returns all user's operations with the balance
-func (r *Repo) List(userID string) ([]*UserBalanceOperation, error) {
+func (r *Repo) List(userID, sortBy, sortOrder string) ([]*UserBalanceOperation, error) {
 	operations := make([]*UserBalanceOperation, 0, 10)
 	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
 	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
 	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE to_user_id = $1`, userID)
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE to_user_id = $1
+	ORDER BY `+sortBy+` `+sortOrder, userID)
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
+		return nil, ErrDBQuery
 	}
 	defer rows.Close()
 	for rows.Next() {
 		item := &UserBalanceOperation{}
 		err := rows.Scan(&item.ID, &item.FromUserID, &item.ToUserID, &item.Amount, &item.CreatedAt, &item.Comment)
 		if err != nil {
-			return nil, err
+			return nil, ErrDBQuery
 		}
 		operations = append(operations, item)
 	}
 	return operations, nil
 }
-
-/*
-sorting:
-
-// query param &sort=ASC or &sort=DESC
-if sort := r.Query("sort"); sort != "" {
-	sql = fmt.Sprintf("%s ORDER BY xxx %s", sql, sort)
-}
-
-pagination:
-// query params &page=X
-page, _ := strconv.Atoi(r.Query("page", "1"))
-perPage := 10
-var total int64
-db.Raw(sql).Count(&total)
-offset := (page-1)*perPage
-sql = fmt.Sprintf("%s LIMIT %d OFFSET %d", sql, perPage, offset)
-db.Raw(sql).Scan(&products)
-return JSON({
-	"data": products,
-	"total": total,
-	"page": page,
-	"lastPage": math.Ceil(float64(total / int64(perPage))),
-})
-*/
