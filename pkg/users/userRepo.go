@@ -164,13 +164,18 @@ type UserBalanceOperation struct {
 }
 
 // List returns all user's operations with the balance
-func (r *Repo) List(userID, sortBy, sortOrder string) ([]*UserBalanceOperation, error) {
+func (r *Repo) List(userID, sortBy, sortOrder string, perPage, offset int) ([]*UserBalanceOperation, error) {
 	operations := make([]*UserBalanceOperation, 0, 10)
-	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits WHERE to_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions WHERE to_user_id = $1
-	ORDER BY `+sortBy+` `+sortOrder, userID)
+	sorting := fmt.Sprintf(" ORDER BY %s %s", sortBy, sortOrder)
+	pagination := fmt.Sprintf(" LIMIT %d OFFSET %d", perPage, offset)
+	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM deposits 
+	WHERE to_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM withdrawals 
+	WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions 
+	WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, created_at, comment FROM transactions 
+	WHERE to_user_id = $1`+sorting+pagination, userID)
 	if err != nil {
 		fmt.Println(err)
 		return nil, ErrDBQuery
