@@ -1,9 +1,11 @@
 ## user-balance / Avito autumn 2021 backend trainee test
 
-Project starts with the command: 
+- Project starts with the command: 
 ```make start```
 
-To stop and remove all containers: 
+Sometimes it crashes after the first time, if it does then please try again ```make start```
+
+- To stop and remove all containers: 
 ```make stop```
 
 API endpoints:
