@@ -2,7 +2,9 @@ version: "3.7"
 
 services:
   db:
-    image: postgres:13.1-alpine
+    build:
+      context: ../build
+      dockerfile: ../build/Dockerfile.postgres
     environment: 
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=spartak1

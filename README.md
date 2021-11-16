@@ -1,8 +1,10 @@
 ## user-balance / Avito autumn 2021 backend trainee test
 
-Project starts with commands: 
-1. ```make start``` (spins up docker containers)
-2. ```make migrateup``` (creates all tables)
+Project starts with the command: 
+```make start```
+
+To stop and remove all containers: 
+```make stop```
 
 API endpoints:
 
